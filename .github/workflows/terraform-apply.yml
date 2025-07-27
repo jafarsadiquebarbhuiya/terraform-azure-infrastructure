@@ -1,12 +1,12 @@
 name: 'Terraform Apply'
 
 on:
-  push:
-    branches:
-      - master  # Your main branch
-    paths:
-      - 'environments/**'
-      - 'modules/**'
+  workflow_dispatch:
+    inputs:
+      confirm_apply:
+        description: 'Type "APPLY-DEV" to confirm deployment to DEV environment'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +16,8 @@ jobs:
     name: 'Deploy to DEV Environment'
     runs-on: ubuntu-latest
     environment: DEV
+    
+    if: github.event.inputs.confirm_apply == 'APPLY-DEV'
     
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -62,7 +64,8 @@ jobs:
           **Environment:** DEV
           **Working Directory:** \`environments/dev\`
           **Variables File:** \`devterraform.tfvars\`
-          **Commit:** \`${{ github.sha }}\`
+          **Triggered by:** Manual workflow dispatch
+          **Confirmation:** \`${{ github.event.inputs.confirm_apply }}\`
           **Actor:** @${{ github.actor }}
           **Timestamp:** ${new Date().toISOString()}
           
@@ -82,15 +85,3 @@ jobs:
             commit_sha: context.sha,
             body: output
           });
-
-    - name: Run Makefile targets (if any)
-      run: |
-        if [ -f "Makefile" ]; then
-          echo "Makefile found, checking available targets..."
-          make help || echo "No help target available"
-          # Add specific make commands if you have them
-          # make deploy || echo "No deploy target"
-        else
-          echo "No Makefile found"
-        fi
-      continue-on-error: true
