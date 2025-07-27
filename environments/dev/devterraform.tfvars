@@ -6,5 +6,5 @@ subscription_name = "jafar_devops"
 
 
 azure_resource_location = "East US"
-rg_count                = 3
+rg_count                = 2
 project_environment     = "dev"

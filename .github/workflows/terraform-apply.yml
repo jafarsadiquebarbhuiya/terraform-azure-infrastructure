@@ -56,10 +56,12 @@ jobs:
 
     - name: Comment Deployment Result
       uses: actions/github-script@v7
+      if: success()
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const output = `### ✅ DEV Environment Deployment Successful
+          // Create issue comment instead of commit comment for manual workflows
+          const issueComment = `### ✅ DEV Environment Deployment Successful
           
           **Environment:** DEV
           **Working Directory:** \`environments/dev\`
@@ -68,20 +70,46 @@ jobs:
           **Confirmation:** \`${{ github.event.inputs.confirm_apply }}\`
           **Actor:** @${{ github.actor }}
           **Timestamp:** ${new Date().toISOString()}
+          **Run ID:** ${{ github.run_id }}
           
           <details>
           <summary>Terraform Outputs</summary>
           
           \`\`\`json
-          ${{ steps.output.outputs.stdout || 'No outputs defined' }}
+          ${{ steps.output.outputs.stdout || '{}' }}
           \`\`\`
           </details>
           
-          🚀 **Infrastructure deployment completed successfully!**`;
+          🚀 **Infrastructure deployment completed successfully!**
           
-          await github.rest.repos.createCommitComment({
+          [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+          
+          // Try to find an existing issue for deployment notifications
+          const { data: issues } = await github.rest.issues.listForRepo({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            commit_sha: context.sha,
-            body: output
+            state: 'open',
+            labels: 'deployment-notifications'
           });
+          
+          if (issues.length > 0) {
+            // Comment on existing deployment issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issues[0].number,
+              body: issueComment
+            });
+          } else {
+            // Create new deployment notifications issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '📋 Deployment Notifications',
+              body: `This issue tracks deployment notifications for the terraform-azure-infrastructure repository.
+              
+              ${issueComment}`,
+              labels: ['deployment-notifications']
+            });
+          }
+      continue-on-error: true
