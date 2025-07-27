@@ -1,0 +1,55 @@
+name: 'Terraform Apply'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/**'
+      - 'modules/**'
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  terraform-apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [dev]  # Start with dev only, add staging/prod as needed
+      fail-fast: false
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: environments/${{ matrix.environment }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Terraform Init
+      run: |
+        terraform init \
+          -backend-config="storage_account_name=${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=${{ secrets.TERRAFORM_STATE_CONTAINER }}" \
+          -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
+
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve tfplan
+
+    - name: Output Summary
+      run: terraform output
