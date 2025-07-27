@@ -3,31 +3,31 @@ name: 'Terraform Apply'
 on:
   push:
     branches:
-      - master
+      - master  # Your main branch
     paths:
       - 'environments/**'
       - 'modules/**'
 
-env:
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+permissions:
+  contents: read
 
 jobs:
-  terraform-apply:
-    name: 'Terraform Apply'
+  deploy-dev:
+    name: 'Deploy to DEV Environment'
     runs-on: ubuntu-latest
+    environment: DEV
     
-    strategy:
-      matrix:
-        environment: [dev]  # Start with dev only, add staging/prod as needed
-      fail-fast: false
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_USE_CLI: false
     
     defaults:
       run:
         shell: bash
-        working-directory: environments/${{ matrix.environment }}
+        working-directory: environments/dev  # Your working directory
 
     steps:
     - name: Checkout
@@ -39,17 +39,58 @@ jobs:
         terraform_version: 1.6.0
 
     - name: Terraform Init
-      run: |
-        terraform init \
-          -backend-config="storage_account_name=${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" \
-          -backend-config="container_name=${{ secrets.TERRAFORM_STATE_CONTAINER }}" \
-          -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
+      run: terraform init
 
     - name: Terraform Plan
-      run: terraform plan -out=tfplan
+      run: terraform plan -var-file="devterraform.tfvars" -out=tfplan
 
     - name: Terraform Apply
       run: terraform apply -auto-approve tfplan
 
-    - name: Output Summary
-      run: terraform output
+    - name: Terraform Output
+      id: output
+      run: terraform output -json
+      continue-on-error: true
+
+    - name: Comment Deployment Result
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `### ✅ DEV Environment Deployment Successful
+          
+          **Environment:** DEV
+          **Working Directory:** \`environments/dev\`
+          **Variables File:** \`devterraform.tfvars\`
+          **Commit:** \`${{ github.sha }}\`
+          **Actor:** @${{ github.actor }}
+          **Timestamp:** ${new Date().toISOString()}
+          
+          <details>
+          <summary>Terraform Outputs</summary>
+          
+          \`\`\`json
+          ${{ steps.output.outputs.stdout || 'No outputs defined' }}
+          \`\`\`
+          </details>
+          
+          🚀 **Infrastructure deployment completed successfully!**`;
+          
+          await github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: output
+          });
+
+    - name: Run Makefile targets (if any)
+      run: |
+        if [ -f "Makefile" ]; then
+          echo "Makefile found, checking available targets..."
+          make help || echo "No help target available"
+          # Add specific make commands if you have them
+          # make deploy || echo "No deploy target"
+        else
+          echo "No Makefile found"
+        fi
+      continue-on-error: true

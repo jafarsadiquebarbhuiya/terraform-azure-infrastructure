@@ -3,35 +3,33 @@ name: 'Terraform Destroy'
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to destroy'
+      confirm_destroy:
+        description: 'Type "DESTROY-DEV" to confirm destruction of DEV environment'
         required: true
-        default: 'dev'
-        type: choice
-        options:
-        - dev
-        - staging
-        - prod
-      confirm:
-        description: 'Type "destroy" to confirm'
-        required: true
+        type: string
 
-env:
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+permissions:
+  contents: read
 
 jobs:
   terraform-destroy:
-    name: 'Terraform Destroy'
+    name: 'Destroy DEV Environment'
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'destroy'
+    environment: DEV
+    
+    if: github.event.inputs.confirm_destroy == 'DESTROY-DEV'
+    
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_USE_CLI: false
     
     defaults:
       run:
         shell: bash
-        working-directory: environments/${{ github.event.inputs.environment }}
+        working-directory: environments/dev  # Your working directory
 
     steps:
     - name: Checkout
@@ -43,11 +41,33 @@ jobs:
         terraform_version: 1.6.0
 
     - name: Terraform Init
-      run: |
-        terraform init \
-          -backend-config="storage_account_name=${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" \
-          -backend-config="container_name=${{ secrets.TERRAFORM_STATE_CONTAINER }}" \
-          -backend-config="key=${{ github.event.inputs.environment }}/terraform.tfstate"
+      run: terraform init
+
+    - name: Terraform Destroy Plan
+      run: terraform plan -var-file="devterraform.tfvars" -destroy -out=destroy-plan
 
     - name: Terraform Destroy
-      run: terraform destroy -auto-approve
+      run: terraform apply -auto-approve destroy-plan
+
+    - name: Notify Destruction
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `### 💥 DEV Environment Destroyed
+          
+          **Environment:** DEV
+          **Working Directory:** \`environments/dev\`
+          **Destroyed by:** @${{ github.actor }}
+          **Timestamp:** ${new Date().toISOString()}
+          
+          ⚠️ **All DEV environment resources have been destroyed!**
+          
+          To recreate the environment, push changes to the master branch.`;
+          
+          await github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: output
+          });
