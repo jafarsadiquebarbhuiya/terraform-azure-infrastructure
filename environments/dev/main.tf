@@ -17,53 +17,26 @@ provider "azurerm" {
 #     }
 #   }
 # }
-
-
-# Resource Group
-resource "azurerm_resource_group" "dev_rg" {
-  count    = var.rg_count
-  name     = "rg-${var.project_name}-${var.project_environment}-${count.index}"
-  location = var.azure_resource_location
-  tags     = local.common_tags
+module "dev_resourcegroup" {
+  source                  = "../../modules/resourcegroup"
+  project_name            = var.project_name
+  project_environment     = var.project_environment
+  azure_resource_location = var.azure_resource_location
+  rg_count                = var.rg_count
+  tags                    = local.common_tags
 }
 
 
 
-
-
-
-# # Networking Module
-# module "networking" {
-#   source = "../../modules/networking"
-
-#   environment         = local.environment
-#   resource_group_name = azurerm_resource_group.main.name
-#   location            = azurerm_resource_group.main.location
-#   vnet_address_space  = var.vnet_address_space
-#   subnet_config       = var.subnet_config
-
-#   tags = local.common_tags
-# }
-
-# # Storage Module
-# module "storage" {
+# Storage Module
+# module "dev_storageaccount" {
 #   source = "../../modules/storage"
 
 #   environment         = local.environment
-#   resource_group_name = azurerm_resource_group.main.name
+#   resource_group_name = module.azurerm_resource_group.
 #   location            = azurerm_resource_group.main.location
 #   storage_config      = var.storage_config
 
 #   tags = local.common_tags
 # }
 
-# # Security Module
-# module "security" {
-#   source = "../../modules/security"
-
-#   environment         = local.environment
-#   resource_group_name = azurerm_resource_group.main.name
-#   location            = azurerm_resource_group.main.location
-
-#   tags = local.common_tags
-# }
