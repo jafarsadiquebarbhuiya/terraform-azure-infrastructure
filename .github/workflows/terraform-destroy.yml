@@ -12,17 +12,20 @@ on:
           - DEV
           - STAGE
           - PROD
-      list_resources_only:
-        description: 'List existing resources only (no destruction)'
+      action:
+        description: 'What do you want to do?'
         required: true
-        default: true
-        type: boolean
+        default: 'list'
+        type: choice
+        options:
+          - 'list'     # List resources only
+          - 'destroy'  # Destroy a resource
       resource_target:
-        description: 'Resource to destroy (get this from the resource list output first)'
+        description: 'Resource to destroy (copy from list output)'
         required: false
         type: string
       confirm_destroy:
-        description: 'Type "DESTROY-RESOURCE" to confirm destruction (only if list_resources_only is false)'
+        description: 'Type "DESTROY-RESOURCE" to confirm (only needed for destroy action)'
         required: false
         type: string
 
@@ -34,7 +37,7 @@ jobs:
     name: 'List Resources - ${{ github.event.inputs.environment }}'
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
-    if: github.event.inputs.list_resources_only == 'true'
+    if: github.event.inputs.action == 'list'
     
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -75,7 +78,6 @@ jobs:
       working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: List All Resources in State
-      id: list_state
       run: |
         echo "### 📋 Resources in Terraform State" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -85,58 +87,35 @@ jobs:
           echo "| Resource Address | Resource Type |" >> $GITHUB_STEP_SUMMARY
           echo "|------------------|---------------|" >> $GITHUB_STEP_SUMMARY
           terraform state list | while read resource; do
-            resource_type=$(echo "$resource" | sed 's/\[.*\]//' | sed 's/.*\.//')
+            resource_type=$(echo "$resource" | sed 's/.*\.//' | sed 's/\[.*\]//')
             echo "| \`$resource\` | $resource_type |" >> $GITHUB_STEP_SUMMARY
           done
           
-          # Store resources for easy copy-paste
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📝 Copy-Paste Ready Resource Addresses:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           terraform state list >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         else
-          echo "❌ No resources found in state or state file doesn't exist" >> $GITHUB_STEP_SUMMARY
-        fi
-      working-directory: environments/${{ steps.env_vars.outputs.dir }}
-
-    - name: Get Resource Details
-      run: |
-        echo "### 🔍 Detailed Resource Information" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if terraform state list > /dev/null 2>&1; then
-          terraform state list | while read resource; do
-            echo "#### Resource: \`$resource\`" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            terraform state show "$resource" | head -20 >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          done
+          echo "❌ No resources found in state" >> $GITHUB_STEP_SUMMARY
         fi
       working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Show Usage Instructions
       run: |
-        echo "### 🎯 How to Destroy a Specific Resource" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 How to Destroy a Resource" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "1. **Copy** one of the resource addresses from above" >> $GITHUB_STEP_SUMMARY
-        echo "2. **Run this workflow again** with these settings:" >> $GITHUB_STEP_SUMMARY
-        echo "   - **List resources only:** \`false\`" >> $GITHUB_STEP_SUMMARY
-        echo "   - **Resource target:** Paste the resource address" >> $GITHUB_STEP_SUMMARY
+        echo "1. **Copy** a resource address from above" >> $GITHUB_STEP_SUMMARY
+        echo "2. **Run this workflow again** with:" >> $GITHUB_STEP_SUMMARY
+        echo "   - **Action:** \`destroy\`" >> $GITHUB_STEP_SUMMARY
+        echo "   - **Resource target:** [paste the address]" >> $GITHUB_STEP_SUMMARY
         echo "   - **Confirm destroy:** \`DESTROY-RESOURCE\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📚 Example Resource Targets:" >> $GITHUB_STEP_SUMMARY
-        echo "- \`module.dev_storageaccount\` - Destroy entire storage module" >> $GITHUB_STEP_SUMMARY
-        echo "- \`azurerm_storage_account.storage_account[0]\` - Destroy specific storage account" >> $GITHUB_STEP_SUMMARY
-        echo "- \`module.dev_resourcegroup\` - Destroy entire resource group module" >> $GITHUB_STEP_SUMMARY
-        echo "- \`random_string.storage_suffix[0]\` - Destroy random string resource" >> $GITHUB_STEP_SUMMARY
 
   terraform-destroy:
     name: 'Destroy Resource - ${{ github.event.inputs.environment }}'
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
-    if: github.event.inputs.list_resources_only == 'false' && github.event.inputs.confirm_destroy == 'DESTROY-RESOURCE'
+    if: github.event.inputs.action == 'destroy'
     
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -164,14 +143,21 @@ jobs:
             ;;
         esac
 
-    - name: Validate Resource Target
+    - name: Validate Inputs
       run: |
         if [ -z "${{ github.event.inputs.resource_target }}" ]; then
-          echo "❌ Resource target cannot be empty when destroying"
-          echo "💡 Run the workflow with 'List resources only: true' first to see available resources"
+          echo "❌ Resource target is required for destroy action!"
+          echo "💡 Run with action 'list' first to see available resources"
           exit 1
         fi
-        echo "✅ Targeting resource: ${{ github.event.inputs.resource_target }}"
+        
+        if [ "${{ github.event.inputs.confirm_destroy }}" != "DESTROY-RESOURCE" ]; then
+          echo "❌ Confirmation must be exactly: DESTROY-RESOURCE"
+          exit 1
+        fi
+        
+        echo "✅ All validations passed"
+        echo "✅ Target: ${{ github.event.inputs.resource_target }}"
         echo "✅ Environment: ${{ github.event.inputs.environment }}"
 
     - name: Checkout
@@ -188,21 +174,14 @@ jobs:
 
     - name: Verify Resource Exists
       run: |
-        echo "### 🔍 Verifying Resource Exists" >> $GITHUB_STEP_SUMMARY
         if terraform state show "${{ github.event.inputs.resource_target }}" > /dev/null 2>&1; then
-          echo "✅ Resource \`${{ github.event.inputs.resource_target }}\` found in state" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Resource found in state: ${{ github.event.inputs.resource_target }}"
         else
-          echo "❌ Resource \`${{ github.event.inputs.resource_target }}\` not found in state" >> $GITHUB_STEP_SUMMARY
-          echo "Available resources:" >> $GITHUB_STEP_SUMMARY
-          terraform state list >> $GITHUB_STEP_SUMMARY
+          echo "❌ Resource not found in state: ${{ github.event.inputs.resource_target }}"
+          echo "Available resources:"
+          terraform state list
           exit 1
         fi
-      working-directory: environments/${{ steps.env_vars.outputs.dir }}
-
-    - name: Show Current Resources
-      run: |
-        echo "### 📋 Current Resources Before Destruction" >> $GITHUB_STEP_SUMMARY
-        terraform state list >> $GITHUB_STEP_SUMMARY
       working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Terraform Destroy Plan
@@ -213,10 +192,7 @@ jobs:
 
     - name: Show Destroy Plan
       run: |
-        echo "### 🗑️ Resource to be DESTROYED:" >> $GITHUB_STEP_SUMMARY
-        echo "**Target:** \`${{ github.event.inputs.resource_target }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🗑️ Destroy Plan for: \`${{ github.event.inputs.resource_target }}\`" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         terraform show -no-color destroy-plan >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
@@ -228,17 +204,10 @@ jobs:
         terraform apply -auto-approve destroy-plan
       working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
-    - name: Show Remaining Resources
+    - name: Log Success
       run: |
-        echo "### 📋 Remaining Resources After Destruction" >> $GITHUB_STEP_SUMMARY
-        terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources remaining" >> $GITHUB_STEP_SUMMARY
-      working-directory: environments/${{ steps.env_vars.outputs.dir }}
-
-    - name: Log Destruction Success
-      run: |
-        echo "### 💥 Selective Destruction Completed"
-        echo "**Resource Destroyed:** \`${{ github.event.inputs.resource_target }}\`"
-        echo "**Environment:** ${{ github.event.inputs.environment }}"
-        echo "**Destroyed by:** ${{ github.actor }}"
-        echo "**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-        echo "✅ Targeted resource destruction completed successfully!"
+        echo "### 💥 Resource Destroyed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "**Resource:** \`${{ github.event.inputs.resource_target }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Destroyed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
