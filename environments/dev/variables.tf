@@ -3,7 +3,7 @@ variable "project_environment" {
   type = string
 
 }
-variable "azure_resource_location" {
+variable "az_resource_location" {
   type = string
 
 }
@@ -11,37 +11,36 @@ variable "rg_count" {
   type = number
 
 }
-
+variable "project_name" {
+  description = "Project name"
+  type        = string
+}
 
 #=========================================================#
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment name (DEV, STAGE, PROD)"
   type        = string
   validation {
     condition     = contains(["DEV", "STG", "PROD"], var.environment)
-    error_message = "Environment must be dev, staging, or prod."
+    error_message = "Environment must be DEV, STAGE, or PROD."
   }
 }
-
 variable "owner" {
   description = "Resource owner"
   type        = string
-  default     = "jafar"
 }
 
 variable "business_unit" {
   description = "Business unit"
   type        = string
-  default     = "adp"
 }
 
 variable "subscription_name" {
   description = "Azure subscription identifier"
   type        = string
-  default     = "jafar_devops"
 }
 
-variable "project_name" {
+variable "project" {
   description = "Project name"
   type        = string
 }
