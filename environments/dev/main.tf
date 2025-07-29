@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~>3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~>3.1"
+    }
   }
 }
 provider "azurerm" {
@@ -30,4 +34,3 @@ module "dev_storageaccount" {
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
   depends_on        = [module.dev_resourcegroup]
 }
-

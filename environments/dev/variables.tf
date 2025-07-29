@@ -7,10 +7,7 @@ variable "az_resource_location" {
   type = string
 
 }
-variable "rg_count" {
-  type = number
 
-}
 variable "project_name" {
   description = "Project name"
   type        = string
