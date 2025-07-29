@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~>3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~>3.1"
+    }
   }
 }
 provider "azurerm" {
@@ -18,25 +22,15 @@ provider "azurerm" {
 #   }
 # }
 module "dev_resourcegroup" {
-  source                  = "../../modules/resourcegroup"
-  project_name            = var.project_name
-  project_environment     = var.project_environment
-  azure_resource_location = var.azure_resource_location
-  rg_count                = var.rg_count
-  tags                    = local.common_tags
+  source = "../../modules/resourcegroup"
+
+  common_config = local.common_config
+  rg_config     = var.rg_config
 }
-
-
-
-# Storage Module
-# module "dev_storageaccount" {
-#   source = "../../modules/storage"
-
-#   environment         = local.environment
-#   resource_group_name = module.azurerm_resource_group.
-#   location            = azurerm_resource_group.main.location
-#   storage_config      = var.storage_config
-
-#   tags = local.common_tags
-# }
-
+module "dev_storageaccount" {
+  source            = "../../modules/storage"
+  common_config     = local.common_config
+  storage_config    = var.storage_config
+  az_resource_group = module.dev_resourcegroup.primary_resource_group_name
+  depends_on        = [module.dev_resourcegroup]
+}

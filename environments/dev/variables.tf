@@ -3,45 +3,57 @@ variable "project_environment" {
   type = string
 
 }
-variable "azure_resource_location" {
+variable "az_resource_location" {
   type = string
 
-}
-variable "rg_count" {
-  type = number
-
-}
-
-
-#=========================================================#
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-  validation {
-    condition     = contains(["DEV", "STG", "PROD"], var.environment)
-    error_message = "Environment must be dev, staging, or prod."
-  }
-}
-
-variable "owner" {
-  description = "Resource owner"
-  type        = string
-  default     = "jafar"
-}
-
-variable "business_unit" {
-  description = "Business unit"
-  type        = string
-  default     = "adp"
-}
-
-variable "subscription_name" {
-  description = "Azure subscription identifier"
-  type        = string
-  default     = "jafar_devops"
 }
 
 variable "project_name" {
   description = "Project name"
   type        = string
+}
+
+#=========================================================#
+variable "environment" {
+  description = "Environment name (DEV, STAGE, PROD)"
+  type        = string
+  validation {
+    condition     = contains(["DEV", "STG", "PROD"], var.environment)
+    error_message = "Environment must be DEV, STAGE, or PROD."
+  }
+}
+variable "owner" {
+  description = "Resource owner"
+  type        = string
+}
+
+variable "business_unit" {
+  description = "Business unit"
+  type        = string
+}
+
+variable "subscription_name" {
+  description = "Azure subscription identifier"
+  type        = string
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+}
+
+variable "rg_config" {
+  description = "Resource Group Specific Configuration"
+  type = object({
+    rg_count = number
+  })
+}
+
+variable "storage_config" {
+  description = "Storage account specific configuration"
+  type = object({
+    storage_account_tier             = string
+    storage_account_replication_type = string
+    storage_count                    = number
+  })
 }

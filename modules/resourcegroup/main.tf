@@ -1,6 +1,6 @@
-resource "azurerm_resource_group" "dev_rg" {
-  count    = var.rg_count
-  name     = "rg-${var.project_name}-${var.project_environment}-${count.index}"
-  location = var.azure_resource_location
-  tags     = var.tags
+resource "azurerm_resource_group" "resourcegroup" {
+  count    = var.rg_config.rg_count
+  name     = "rg-${var.common_config.project_name}-${var.common_config.project_environment}-${count.index}"
+  location = var.common_config.az_resource_location
+  tags     = var.common_config.tags
 }
