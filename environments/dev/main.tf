@@ -24,7 +24,7 @@ module "dev_resourcegroup" {
   rg_config     = var.rg_config
 }
 module "dev_storageaccount" {
-  source            = "../../modules/storageaccount"
+  source            = "../../modules/storage"
   common_config     = local.common_config
   storage_config    = var.storage_config
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
