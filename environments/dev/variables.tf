@@ -44,3 +44,19 @@ variable "project" {
   description = "Project name"
   type        = string
 }
+
+variable "rg_config" {
+  description = "Resource Group Specific Configuration"
+  type = object({
+    rg_count = number
+  })
+}
+
+variable "storage_config" {
+  description = "Storage account specific configuration"
+  type = object({
+    storage_account_tier             = string
+    storage_account_replication_type = string
+    storage_count                    = number
+  })
+}
