@@ -10,8 +10,8 @@ on:
         type: choice
         options:
           - DEV
-          - STAGE
-          - PROD
+          - STAGE  # You'll add this later
+          - PROD   # You'll add this later
       resource_target:
         description: 'Resource to destroy (e.g., module.dev_storageaccount, azurerm_storage_account.storage_account[0])'
         required: true
@@ -38,13 +38,26 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_USE_CLI: false
-    
-    defaults:
-      run:
-        shell: bash
-        working-directory: environments/${{ github.event.inputs.environment }}
 
     steps:
+    - name: Set Environment Variables
+      id: env_vars
+      run: |
+        case "${{ github.event.inputs.environment }}" in
+          "DEV")
+            echo "dir=dev" >> $GITHUB_OUTPUT
+            echo "tfvars=devterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+          "STAGE")
+            echo "dir=staging" >> $GITHUB_OUTPUT
+            echo "tfvars=stageterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+          "PROD")
+            echo "dir=prod" >> $GITHUB_OUTPUT
+            echo "tfvars=prodterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
     - name: Validate Resource Target
       run: |
         if [ -z "${{ github.event.inputs.resource_target }}" ]; then
@@ -53,19 +66,10 @@ jobs:
         fi
         echo "✅ Targeting resource: ${{ github.event.inputs.resource_target }}"
         echo "✅ Environment: ${{ github.event.inputs.environment }}"
-        echo "✅ Working directory: environments/${{ github.event.inputs.environment }}"
+        echo "✅ Directory: environments/${{ steps.env_vars.outputs.dir }}"
 
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: List Directory Structure (Debug)
-      run: |
-        echo "Repository structure:"
-        ls -la
-        echo "Environments directory:"
-        ls -la environments/
-        echo "Current environment directory:"
-        ls -la environments/${{ github.event.inputs.environment }}/ || echo "Directory doesn't exist"
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -74,31 +78,19 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
+      working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Show Current Resources
       run: |
         echo "### 📋 Current Resources in ${{ github.event.inputs.environment }} Environment" >> $GITHUB_STEP_SUMMARY
         terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources found or state file empty" >> $GITHUB_STEP_SUMMARY
-
-    - name: Determine tfvars file
-      id: tfvars
-      run: |
-        case "${{ github.event.inputs.environment }}" in
-          "DEV")
-            echo "file=devterraform.tfvars" >> $GITHUB_OUTPUT
-            ;;
-          "STAGE")
-            echo "file=stageterraform.tfvars" >> $GITHUB_OUTPUT
-            ;;
-          "PROD")
-            echo "file=prodterraform.tfvars" >> $GITHUB_OUTPUT
-            ;;
-        esac
+      working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Terraform Destroy Plan
       run: |
         echo "Creating destroy plan for: ${{ github.event.inputs.resource_target }}"
-        terraform plan -var-file="${{ steps.tfvars.outputs.file }}" -destroy -target="${{ github.event.inputs.resource_target }}" -out=destroy-plan
+        terraform plan -var-file="${{ steps.env_vars.outputs.tfvars }}" -destroy -target="${{ github.event.inputs.resource_target }}" -out=destroy-plan
+      working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Show Destroy Plan
       run: |
@@ -109,23 +101,20 @@ jobs:
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         terraform show -no-color destroy-plan >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Terraform Destroy
       run: |
         echo "Executing destruction of: ${{ github.event.inputs.resource_target }}"
         terraform apply -auto-approve destroy-plan
-
-    - name: Verify Destruction
-      run: |
-        echo "### 📋 Remaining Resources After Destruction" >> $GITHUB_STEP_SUMMARY
-        terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources remaining" >> $GITHUB_STEP_SUMMARY
+      working-directory: environments/${{ steps.env_vars.outputs.dir }}
 
     - name: Log Destruction Success
       run: |
         echo "### 💥 Selective Destruction Completed"
         echo "**Resource Destroyed:** \`${{ github.event.inputs.resource_target }}\`"
         echo "**Environment:** ${{ github.event.inputs.environment }}"
+        echo "**Directory:** environments/${{ steps.env_vars.outputs.dir }}"
         echo "**Destroyed by:** ${{ github.actor }}"
         echo "**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-        echo "**Run ID:** ${{ github.run_id }}"
         echo "✅ Targeted resource destruction completed. Other resources remain intact."
