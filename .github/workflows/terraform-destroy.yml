@@ -42,7 +42,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: environments/${{ github.event.inputs.environment == 'DEV' && 'dev' || github.event.inputs.environment == 'STAGE' && 'staging' || 'prod' }}
+        working-directory: environments/${{ github.event.inputs.environment }}
 
     steps:
     - name: Validate Resource Target
@@ -53,9 +53,19 @@ jobs:
         fi
         echo "✅ Targeting resource: ${{ github.event.inputs.resource_target }}"
         echo "✅ Environment: ${{ github.event.inputs.environment }}"
+        echo "✅ Working directory: environments/${{ github.event.inputs.environment }}"
 
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: List Directory Structure (Debug)
+      run: |
+        echo "Repository structure:"
+        ls -la
+        echo "Environments directory:"
+        ls -la environments/
+        echo "Current environment directory:"
+        ls -la environments/${{ github.event.inputs.environment }}/ || echo "Directory doesn't exist"
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -70,10 +80,25 @@ jobs:
         echo "### 📋 Current Resources in ${{ github.event.inputs.environment }} Environment" >> $GITHUB_STEP_SUMMARY
         terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources found or state file empty" >> $GITHUB_STEP_SUMMARY
 
+    - name: Determine tfvars file
+      id: tfvars
+      run: |
+        case "${{ github.event.inputs.environment }}" in
+          "DEV")
+            echo "file=devterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+          "STAGE")
+            echo "file=stageterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+          "PROD")
+            echo "file=prodterraform.tfvars" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
     - name: Terraform Destroy Plan
       run: |
         echo "Creating destroy plan for: ${{ github.event.inputs.resource_target }}"
-        terraform plan -var-file="${{ github.event.inputs.environment == 'DEV' && 'devterraform.tfvars' || github.event.inputs.environment == 'STAGE' && 'stageterraform.tfvars' || 'prodterraform.tfvars' }}" -destroy -target="${{ github.event.inputs.resource_target }}" -out=destroy-plan
+        terraform plan -var-file="${{ steps.tfvars.outputs.file }}" -destroy -target="${{ github.event.inputs.resource_target }}" -out=destroy-plan
 
     - name: Show Destroy Plan
       run: |
