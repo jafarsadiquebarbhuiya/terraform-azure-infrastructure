@@ -1,19 +1,19 @@
-
+#==============================================================================
+#COMMON-CONFIG
+#==============================================================================
 variable "project_environment" {
   type = string
-
 }
 variable "az_resource_location" {
   type = string
-
 }
-
 variable "project_name" {
   description = "Project name"
   type        = string
 }
-
-#=========================================================#
+#==============================================================================
+#COMMON-TAGS
+#==============================================================================
 variable "environment" {
   description = "Environment name (DEV, STAGE, PROD)"
   type        = string
@@ -26,29 +26,30 @@ variable "owner" {
   description = "Resource owner"
   type        = string
 }
-
 variable "business_unit" {
   description = "Business unit"
   type        = string
 }
-
 variable "subscription_name" {
   description = "Azure subscription identifier"
   type        = string
 }
-
 variable "project" {
   description = "Project name"
   type        = string
 }
-
+#==============================================================================
+#RESOURCE-GROUP
+#==============================================================================
 variable "rg_config" {
   description = "Resource Group Specific Configuration"
   type = object({
     rg_count = number
   })
 }
-
+#==============================================================================
+#STORAGE-ACCOUNT
+#==============================================================================
 variable "storage_config" {
   description = "Storage account specific configuration"
   type = object({

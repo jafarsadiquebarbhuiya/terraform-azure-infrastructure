@@ -13,20 +13,18 @@ terraform {
 provider "azurerm" {
   features {}
 }
-# provider "azurerm" {
-#   features {
-#     key_vault {
-#       purge_soft_delete_on_destroy    = true
-#       recover_soft_deleted_key_vaults = true
-#     }
-#   }
-# }
-module "dev_resourcegroup" {
-  source = "../../modules/resourcegroup"
 
+#==============================================================================
+#RESOURCE-GROUP
+#==============================================================================
+module "dev_resourcegroup" {
+  source        = "../../modules/resourcegroup"
   common_config = local.common_config
   rg_config     = var.rg_config
 }
+#==============================================================================
+#STORAGE-ACCOUNT
+#==============================================================================
 module "dev_storageaccount" {
   source            = "../../modules/storage"
   common_config     = local.common_config
