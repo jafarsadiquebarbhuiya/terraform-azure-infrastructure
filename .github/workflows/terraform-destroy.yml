@@ -1,10 +1,23 @@
-name: 'Terraform Destroy'
+name: 'Terraform Selective Destroy'
 
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environment to target'
+        required: true
+        default: 'DEV'
+        type: choice
+        options:
+          - DEV
+          - STAGE
+          - PROD
+      resource_target:
+        description: 'Resource to destroy (e.g., module.dev_storageaccount, azurerm_storage_account.storage_account[0])'
+        required: true
+        type: string
       confirm_destroy:
-        description: 'Type "DESTROY-DEV" to confirm destruction of DEV environment'
+        description: 'Type "DESTROY-RESOURCE" to confirm destruction'
         required: true
         type: string
 
@@ -13,11 +26,11 @@ permissions:
 
 jobs:
   terraform-destroy:
-    name: 'Destroy DEV Environment'
+    name: 'Destroy Resource - ${{ github.event.inputs.environment }}'
     runs-on: ubuntu-latest
-    environment: DEV
+    environment: ${{ github.event.inputs.environment }}
     
-    if: github.event.inputs.confirm_destroy == 'DESTROY-DEV'
+    if: github.event.inputs.confirm_destroy == 'DESTROY-RESOURCE'
     
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -29,9 +42,18 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: environments/dev  # Your working directory
+        working-directory: environments/${{ github.event.inputs.environment == 'DEV' && 'dev' || github.event.inputs.environment == 'STAGE' && 'staging' || 'prod' }}
 
     steps:
+    - name: Validate Resource Target
+      run: |
+        if [ -z "${{ github.event.inputs.resource_target }}" ]; then
+          echo "❌ Resource target cannot be empty"
+          exit 1
+        fi
+        echo "✅ Targeting resource: ${{ github.event.inputs.resource_target }}"
+        echo "✅ Environment: ${{ github.event.inputs.environment }}"
+
     - name: Checkout
       uses: actions/checkout@v4
 
@@ -43,19 +65,42 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
+    - name: Show Current Resources
+      run: |
+        echo "### 📋 Current Resources in ${{ github.event.inputs.environment }} Environment" >> $GITHUB_STEP_SUMMARY
+        terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources found or state file empty" >> $GITHUB_STEP_SUMMARY
+
     - name: Terraform Destroy Plan
-      run: terraform plan -var-file="devterraform.tfvars" -destroy -out=destroy-plan
+      run: |
+        echo "Creating destroy plan for: ${{ github.event.inputs.resource_target }}"
+        terraform plan -var-file="${{ github.event.inputs.environment == 'DEV' && 'devterraform.tfvars' || github.event.inputs.environment == 'STAGE' && 'stageterraform.tfvars' || 'prodterraform.tfvars' }}" -destroy -target="${{ github.event.inputs.resource_target }}" -out=destroy-plan
+
+    - name: Show Destroy Plan
+      run: |
+        echo "### 🗑️ Resource to be DESTROYED:" >> $GITHUB_STEP_SUMMARY
+        echo "**Target:** \`${{ github.event.inputs.resource_target }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        terraform show -no-color destroy-plan >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Terraform Destroy
-      run: terraform apply -auto-approve destroy-plan
+      run: |
+        echo "Executing destruction of: ${{ github.event.inputs.resource_target }}"
+        terraform apply -auto-approve destroy-plan
+
+    - name: Verify Destruction
+      run: |
+        echo "### 📋 Remaining Resources After Destruction" >> $GITHUB_STEP_SUMMARY
+        terraform state list >> $GITHUB_STEP_SUMMARY || echo "No resources remaining" >> $GITHUB_STEP_SUMMARY
 
     - name: Log Destruction Success
       run: |
-        echo "💥 DEV Environment Destroyed"
-        echo "Environment: DEV"
-        echo "Working Directory: environments/dev"
-        echo "Destroyed by: ${{ github.actor }}"
-        echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-        echo "Run ID: ${{ github.run_id }}"
-        echo "⚠️ All DEV environment resources have been destroyed!"
-        echo "To recreate the environment, run the Terraform Apply workflow."
+        echo "### 💥 Selective Destruction Completed"
+        echo "**Resource Destroyed:** \`${{ github.event.inputs.resource_target }}\`"
+        echo "**Environment:** ${{ github.event.inputs.environment }}"
+        echo "**Destroyed by:** ${{ github.actor }}"
+        echo "**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "**Run ID:** ${{ github.run_id }}"
+        echo "✅ Targeted resource destruction completed. Other resources remain intact."
