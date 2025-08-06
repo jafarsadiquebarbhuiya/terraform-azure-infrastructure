@@ -7,7 +7,7 @@ resource "azurerm_user_assigned_identity" "aks_identity" {
 
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "log-${var.common_config.project_name}-${var.common_config.project_environment}"
-  sku                 = "PerGB2018"
+  sku                 = "Free"
   retention_in_days   = 7
   location            = var.common_config.az_resource_location
   resource_group_name = var.az_resource_group
