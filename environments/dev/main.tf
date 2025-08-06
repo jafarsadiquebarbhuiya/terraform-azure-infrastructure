@@ -46,5 +46,5 @@ module "dev_aks" {
   common_config     = local.common_config
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
   subnet_id         = module.dev_networking.aks_subnet_id
-  depends_on        = [module.dev_resourcegroup]
+  depends_on        = [module.dev_networking]
 }

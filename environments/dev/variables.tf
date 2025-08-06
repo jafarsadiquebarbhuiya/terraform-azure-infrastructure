@@ -69,7 +69,7 @@ variable "subnet_address_prefixes" {
   type        = map(list(string))
 }
 
-variable "subnet_id" {
-  description = "Subnet ID for AKS"
-  type        = string
-}
+# variable "subnet_id" {
+#   description = "Subnet ID for AKS"
+#   type        = string
+# }
