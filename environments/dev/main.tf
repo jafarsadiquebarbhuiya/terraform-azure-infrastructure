@@ -34,3 +34,11 @@ module "dev_storageaccount" {
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
   depends_on        = [module.dev_resourcegroup]
 }
+module "dev_networking" {
+  source                  = "../../modules/networking"
+  common_config           = local.common_config
+  az_resource_group       = module.dev_resourcegroup.primary_resource_group_name
+  vnet_address_space      = var.vnet_address_space
+  subnet_address_prefixes = var.subnet_address_prefixes
+  depends_on              = [module.dev_resourcegroup]
+}
