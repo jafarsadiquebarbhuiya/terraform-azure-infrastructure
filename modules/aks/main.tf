@@ -8,7 +8,7 @@ resource "azurerm_user_assigned_identity" "aks_identity" {
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "log-${var.common_config.project_name}-${var.common_config.project_environment}"
   sku                 = "PerGB2018"
-  retention_in_days   = 30
+  retention_in_days   = 7
   location            = var.common_config.az_resource_location
   resource_group_name = var.az_resource_group
   tags                = var.common_config.tags
@@ -21,17 +21,17 @@ resource "azurerm_kubernetes_cluster" "main" {
   dns_prefix                = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
   kubernetes_version        = var.kubernetes_version
   automatic_channel_upgrade = "patch"
-  sku_tier                  = "Standard"
+  sku_tier                  = "Free"
 
   default_node_pool {
     name = "system"
     #node_count          = var.system_node_count
-    vm_size             = "Standard_D2s_v3"
-    type                = "VirtualMachineScaleSets"
-    zones               = ["3"]
+    vm_size = "Standard_B2s"
+    type    = "VirtualMachineScaleSets"
+    #zones               = ["3"]
     enable_auto_scaling = true
     min_count           = 1
-    max_count           = 3 # Reduced to stay within quota
+    max_count           = 2 # Reduced to stay within quota
     max_pods            = 30
     vnet_subnet_id      = var.subnet_id
 
@@ -61,7 +61,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   role_based_access_control_enabled = true
 
   azure_active_directory_role_based_access_control {
-    #managed                = true
+    managed                = true
     admin_group_object_ids = var.admin_group_object_ids
     azure_rbac_enabled     = true
   }
