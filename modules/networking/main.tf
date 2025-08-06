@@ -17,7 +17,7 @@ resource "azurerm_subnet" "keyvault_subnet" {
   name                 = "snet-keyvault-${var.common_config.project_name}-${var.common_config.project_environment}"
   resource_group_name  = var.az_resource_group
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = var.subnet_address_prefixes["aks"]
+  address_prefixes     = var.subnet_address_prefixes["keyvault"]
 
   service_endpoints = ["Microsoft.KeyVault"]
 }
