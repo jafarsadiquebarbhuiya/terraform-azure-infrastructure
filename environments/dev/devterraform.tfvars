@@ -29,4 +29,12 @@ storage_config = {
   storage_count                    = 1
 
 
-}   
+}
+
+#vnet-vars
+vnet_address_space = ["10.1.0.0/16"]
+
+subnet_address_prefixes = {
+  aks      = ["10.1.1.0/24"]
+  keyvault = ["10.1.2.0/24"]
+}

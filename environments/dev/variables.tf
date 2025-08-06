@@ -58,3 +58,13 @@ variable "storage_config" {
     storage_count                    = number
   })
 }
+
+variable "vnet_address_space" {
+  description = "Virtual Network address space"
+  type        = list(string)
+}
+
+variable "subnet_address_prefixes" {
+  description = "Subnet address prefixes"
+  type        = map(list(string))
+}
