@@ -28,7 +28,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     #node_count          = var.system_node_count
     vm_size             = "Standard_D2s_v3"
     type                = "VirtualMachineScaleSets"
-    zones               = ["2"]
+    zones               = ["3"]
     enable_auto_scaling = true
     min_count           = 1
     max_count           = 3 # Reduced to stay within quota
@@ -61,7 +61,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   role_based_access_control_enabled = true
 
   azure_active_directory_role_based_access_control {
-    managed                = true
+    #managed                = true
     admin_group_object_ids = var.admin_group_object_ids
     azure_rbac_enabled     = true
   }
