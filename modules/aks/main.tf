@@ -1,24 +1,24 @@
 resource "azurerm_user_assigned_identity" "aks_identity" {
-  name                = "identity-${var.cluster_name}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  tags                = var.tags
+  name                = "identity-${var.common_config.project_name}-${var.common_config.project_environment}"
+  location            = var.common_config.az_resource_location
+  resource_group_name = var.az_resource_group
+  tags                = var.common_config.tags
 }
 
 resource "azurerm_log_analytics_workspace" "main" {
-  name                = "log-${var.cluster_name}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  name                = "log-${var.common_config.project_name}-${var.common_config.project_environment}"
   sku                 = "PerGB2018"
   retention_in_days   = 30
-  tags                = var.tags
+  location            = var.common_config.az_resource_location
+  resource_group_name = var.az_resource_group
+  tags                = var.common_config.tags
 }
 
 resource "azurerm_kubernetes_cluster" "main" {
-  name                      = var.cluster_name
-  location                  = var.location
-  resource_group_name       = var.resource_group_name
-  dns_prefix                = var.cluster_name
+  name                      = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
+  location                  = var.common_config.az_resource_location
+  resource_group_name       = var.az_resource_group
+  dns_prefix                = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
   kubernetes_version        = var.kubernetes_version
   automatic_channel_upgrade = "patch"
   sku_tier                  = "Standard"
@@ -39,7 +39,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       max_surge = "10%"
     }
 
-    tags = var.tags
+    tags = var.common_config.tags
   }
 
   identity {
@@ -79,7 +79,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     keda_enabled = true
   }
 
-  tags = var.tags
+  tags = var.common_config.tags
 }
 
 # User node pool removed due to vCPU quota limits
