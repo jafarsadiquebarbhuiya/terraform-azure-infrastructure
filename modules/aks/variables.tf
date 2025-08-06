@@ -1,7 +1,7 @@
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.28.3"
+  default     = "1.30"
 }
 
 variable "system_node_count" {
