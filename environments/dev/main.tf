@@ -68,15 +68,14 @@ module "dev_keyvault" {
 #KEYVAUAZURE-CONTAINER-REGISTRY
 #==============================================================================
 data "azurerm_client_config" "current" {}
+data "azurerm_client_config" "current" {}
+
 module "dev_acr" {
   source = "../../modules/acr"
 
   # Common configuration
   common_config     = local.common_config
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
-
-  # ACR specific configuration
-  acr_sku = "Standard"
 
   # Network integration
   aks_subnet_id = module.dev_networking.aks_subnet_id
@@ -88,14 +87,6 @@ module "dev_acr" {
   # Key Vault integration
   key_vault_id = module.dev_keyvault.keyvault_id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-
-  # Optional: Enable for CI/CD scenarios
-  enable_aks_push_access = true
-
-  # Optional: Enable for enhanced security
-  enable_private_endpoint    = false
-  private_endpoint_subnet_id = null
-  private_dns_zone_ids       = []
 
   depends_on = [module.dev_aks, module.dev_keyvault, module.dev_networking]
 }
