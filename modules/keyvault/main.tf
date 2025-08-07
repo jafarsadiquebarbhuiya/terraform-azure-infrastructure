@@ -1,7 +1,7 @@
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "keyvault" {
-  name                       = "kv-${var.common_config.project_name}-${var.common_config.project_environment}"
+  name                       = "kv-aks-${var.common_config.project_name}-${var.common_config.project_environment}"
   location                   = var.common_config.az_resource_location
   resource_group_name        = var.az_resource_group
   tenant_id                  = data.azurerm_client_config.current.tenant_id
