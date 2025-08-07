@@ -32,6 +32,9 @@ module "dev_storageaccount" {
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
   depends_on        = [module.dev_resourcegroup]
 }
+#==============================================================================
+#AZURE-NETWORK
+#==============================================================================
 module "dev_networking" {
   source                  = "../../modules/networking"
   common_config           = local.common_config
@@ -40,7 +43,9 @@ module "dev_networking" {
   subnet_address_prefixes = var.subnet_address_prefixes
   depends_on              = [module.dev_resourcegroup]
 }
-
+#==============================================================================
+#AZURE KUBERNETES CLUSTER
+#==============================================================================
 module "dev_aks" {
   source            = "../../modules/aks"
   common_config     = local.common_config
@@ -48,3 +53,14 @@ module "dev_aks" {
   subnet_id         = module.dev_networking.aks_subnet_id
   depends_on        = [module.dev_networking]
 }
+#==============================================================================
+#KEYVAULT
+#==============================================================================
+module "dev_keyvault" {
+  source             = "../../modules/keyvault"
+  common_config      = local.common_config
+  az_resource_group  = module.dev_resourcegroup.primary_resource_group_name
+  keyvault_subnet_id = module.dev_networking.keyvault_subnet_id
+  depends_on         = [module.dev_networking]
+}
+
