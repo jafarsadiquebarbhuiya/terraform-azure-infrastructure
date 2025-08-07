@@ -57,7 +57,7 @@ resource "azurerm_role_assignment" "microservice_acr_pull" {
 # Grant microservice identity Key Vault secrets access
 resource "azurerm_key_vault_access_policy" "microservice_keyvault_access" {
   key_vault_id = var.key_vault_id
-  tenant_id    = var.tenant_id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = azurerm_user_assigned_identity.microservice_identity.principal_id
 
   secret_permissions = [

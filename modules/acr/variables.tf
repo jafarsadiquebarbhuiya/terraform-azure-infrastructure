@@ -34,8 +34,3 @@ variable "key_vault_id" {
   description = "Key Vault ID for microservice identity access"
   type        = string
 }
-
-variable "tenant_id" {
-  description = "Azure AD tenant ID"
-  type        = string
-}

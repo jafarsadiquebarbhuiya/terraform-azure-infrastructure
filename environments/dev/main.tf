@@ -83,7 +83,6 @@ module "dev_acr" {
 
   # Key Vault integration
   key_vault_id = module.dev_keyvault.keyvault_id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
 
   depends_on = [module.dev_aks, module.dev_keyvault, module.dev_networking]
 }
