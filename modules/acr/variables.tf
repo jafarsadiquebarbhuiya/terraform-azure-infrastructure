@@ -52,11 +52,10 @@ variable "tenant_id" {
 }
 
 variable "allowed_ip_ranges" {
-  description = "List of IP ranges allowed to access ACR"
+  description = "Additional IP ranges allowed to access ACR (beyond the default static IPs and current IP)"
   type        = list(string)
   default     = []
 }
-
 variable "enable_aks_push_access" {
   description = "Enable AKS identity to push images to ACR"
   type        = bool

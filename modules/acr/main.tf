@@ -1,5 +1,25 @@
 # modules/acr/main.tf
 
+# Get current client configuration
+data "azurerm_client_config" "current" {}
+
+# Get current public IP
+data "http" "current_ip" {
+  url = "https://ipv4.icanhazip.com"
+}
+
+# Define IP rules similar to Key Vault module
+locals {
+  current_ip = chomp(data.http.current_ip.response_body)
+  static_ip_rules = [
+    "106.215.140.107/32",
+    "172.203.7.49/32",
+    "20.109.92.212/32"
+  ]
+  # Merge static IPs, current IP, and any additional allowed IPs
+  all_ip_rules = distinct(concat(local.static_ip_rules, ["${local.current_ip}/32"], var.allowed_ip_ranges))
+}
+
 resource "azurerm_container_registry" "acr" {
   name                = "acr${var.common_config.project_name}${var.common_config.project_environment}"
   resource_group_name = var.az_resource_group
@@ -22,14 +42,8 @@ resource "azurerm_container_registry" "acr" {
       subnet_id = var.aks_subnet_id
     }
 
-    # Allow access from specific IP ranges
-    dynamic "ip_rule" {
-      for_each = var.allowed_ip_ranges
-      content {
-        action   = "Allow"
-        ip_range = ip_rule.value
-      }
-    }
+    # Use the merged IP rules from locals
+    ip_rules = local.all_ip_rules
   }
 
   # Enable vulnerability scanning and other premium features
