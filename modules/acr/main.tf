@@ -10,8 +10,8 @@ resource "azurerm_container_registry" "acr" {
   identity {
     type = "SystemAssigned"
   }
-
-  # Network access configuration - VNet integration only
+}
+# Network access configuration - VNet integration only
 #   network_rule_set {
 #     default_action = "Deny"
 
