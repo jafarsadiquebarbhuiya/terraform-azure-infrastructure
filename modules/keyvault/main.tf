@@ -14,7 +14,7 @@ resource "azurerm_key_vault" "keyvault" {
     bypass         = "AzureServices"
 
     virtual_network_subnet_ids = [var.keyvault_subnet_id]
-    ip_rules                   = ["106.215.140.107/32", "172.203.7.49/32"]
+    ip_rules                   = ["106.215.140.107/32", "172.203.7.49/32", "20.109.92.212/32"]
   }
 
   tags = var.common_config.tags
