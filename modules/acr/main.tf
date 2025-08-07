@@ -1,5 +1,4 @@
-# modules/acr/main.tf
-
+data "azurerm_client_config" "current" {}
 resource "azurerm_container_registry" "acr" {
   name                = "acr${var.common_config.project_name}${var.common_config.project_environment}"
   resource_group_name = var.az_resource_group
