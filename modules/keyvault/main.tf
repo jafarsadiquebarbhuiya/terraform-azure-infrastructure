@@ -53,26 +53,26 @@ resource "azurerm_key_vault_access_policy" "current_user" {
 }
 
 # Sample secrets for demonstration
-resource "azurerm_key_vault_secret" "database_connection" {
-  name         = "database-connection-string"
-  value        = "Server=myserver;Database=mydb;User Id=myuser;Password=mypassword;"
-  key_vault_id = azurerm_key_vault.keyvault.id
+# resource "azurerm_key_vault_secret" "database_connection" {
+#   name         = "database-connection-string"
+#   value        = "Server=myserver;Database=mydb;User Id=myuser;Password=mypassword;"
+#   key_vault_id = azurerm_key_vault.keyvault.id
 
-  depends_on = [azurerm_key_vault_access_policy.current_user]
-}
+#   depends_on = [azurerm_key_vault_access_policy.current_user]
+# }
 
-resource "azurerm_key_vault_secret" "api_key" {
-  name         = "external-api-key"
-  value        = "your-secret-api-key-here"
-  key_vault_id = azurerm_key_vault.keyvault.id
+# resource "azurerm_key_vault_secret" "api_key" {
+#   name         = "external-api-key"
+#   value        = "your-secret-api-key-here"
+#   key_vault_id = azurerm_key_vault.keyvault.id
 
-  depends_on = [azurerm_key_vault_access_policy.current_user]
-}
+#   depends_on = [azurerm_key_vault_access_policy.current_user]
+# }
 
-resource "azurerm_key_vault_secret" "redis_password" {
-  name         = "redis-password"
-  value        = "your-redis-password-here"
-  key_vault_id = azurerm_key_vault.keyvault.id
+# resource "azurerm_key_vault_secret" "redis_password" {
+#   name         = "redis-password"
+#   value        = "your-redis-password-here"
+#   key_vault_id = azurerm_key_vault.keyvault.id
 
-  depends_on = [azurerm_key_vault_access_policy.current_user]
-}
+#   depends_on = [azurerm_key_vault_access_policy.current_user]
+# }
