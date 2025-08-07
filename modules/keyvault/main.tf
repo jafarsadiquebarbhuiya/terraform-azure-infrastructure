@@ -29,7 +29,7 @@ resource "azurerm_key_vault" "keyvault" {
     default_action = "Allow"
     bypass         = "AzureServices"
 
-    virtual_network_subnet_ids = [var.keyvault_subnet_id]
+    #virtual_network_subnet_ids = [var.keyvault_subnet_id]
     #ip_rules                   = local.all_ip_rules # CHANGE THIS LINE ONLY
   }
 
