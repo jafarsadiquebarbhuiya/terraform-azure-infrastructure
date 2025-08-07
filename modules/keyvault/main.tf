@@ -26,11 +26,11 @@ resource "azurerm_key_vault" "keyvault" {
   purge_protection_enabled   = false
 
   network_acls {
-    default_action = "Deny"
+    default_action = "Allow"
     bypass         = "AzureServices"
 
     virtual_network_subnet_ids = [var.keyvault_subnet_id]
-    ip_rules                   = local.all_ip_rules # CHANGE THIS LINE ONLY
+    #ip_rules                   = local.all_ip_rules # CHANGE THIS LINE ONLY
   }
 
   tags = var.common_config.tags
