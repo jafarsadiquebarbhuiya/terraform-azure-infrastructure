@@ -76,7 +76,7 @@ module "dev_acr" {
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
 
   # ACR specific configuration
-  acr_sku = "Standard" # Change to "Premium" for production
+  acr_sku = "Standard"
 
   # Network integration
   aks_subnet_id = module.dev_networking.aks_subnet_id
@@ -89,20 +89,13 @@ module "dev_acr" {
   key_vault_id = module.dev_keyvault.keyvault_id
   tenant_id    = data.azurerm_client_config.current.tenant_id
 
-  # Security configuration
-  allowed_ip_ranges = [
-    "106.215.140.107/32",
-    "172.203.7.49/32",
-    "20.109.92.212/32"
-  ]
-
   # Optional: Enable for CI/CD scenarios
   enable_aks_push_access = true
 
   # Optional: Enable for enhanced security
   enable_private_endpoint    = false
-  private_endpoint_subnet_id = null # module.network.private_endpoint_subnet_id
-  private_dns_zone_ids       = []   # [module.network.private_dns_zone_id]
+  private_endpoint_subnet_id = null
+  private_dns_zone_ids       = []
 
   depends_on = [module.dev_aks, module.dev_keyvault, module.dev_networking]
 }
