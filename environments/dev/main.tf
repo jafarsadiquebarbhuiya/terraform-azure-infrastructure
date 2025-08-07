@@ -73,7 +73,7 @@ module "dev_acr" {
 
   # Common configuration
   common_config     = local.common_config
-  az_resource_group = azurerm_resource_group.main.name
+  az_resource_group = module.dev_resourcegroup.primary_resource_group_name
 
   # ACR specific configuration
   acr_sku = "Standard" # Change to "Premium" for production
