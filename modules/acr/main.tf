@@ -12,18 +12,18 @@ resource "azurerm_container_registry" "acr" {
   }
 
   # Network access configuration - VNet integration only
-  network_rule_set {
-    default_action = "Deny"
+#   network_rule_set {
+#     default_action = "Deny"
 
-    # Allow access from AKS subnet
-    virtual_network {
-      action    = "Allow"
-      subnet_id = var.aks_subnet_id
-    }
-  }
+#     # Allow access from AKS subnet
+#     virtual_network {
+#       action    = "Allow"
+#       subnet_id = var.aks_subnet_id
+#     }
+#   }
 
-  tags = var.common_config.tags
-}
+#   tags = var.common_config.tags
+# }
 
 # Role assignment for AKS kubelet identity to pull images from ACR
 resource "azurerm_role_assignment" "aks_acr_pull" {
