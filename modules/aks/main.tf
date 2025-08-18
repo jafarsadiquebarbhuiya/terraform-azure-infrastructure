@@ -26,13 +26,13 @@ resource "azurerm_kubernetes_cluster" "main" {
   default_node_pool {
     name = "system"
     #node_count          = var.system_node_count
-    vm_size = "Standard_B2s"
+    vm_size = "Standard_D2_v3"
     type    = "VirtualMachineScaleSets"
     #zones               = ["3"]
     enable_auto_scaling = true
-    min_count           = 1
-    max_count           = 2 # Reduced to stay within quota
-    max_pods            = 30
+    min_count           = 2
+    max_count           = 3 # Reduced to stay within quota
+    max_pods            = 50
     vnet_subnet_id      = var.subnet_id
 
     upgrade_settings {
