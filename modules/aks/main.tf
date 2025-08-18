@@ -15,14 +15,14 @@ resource "azurerm_log_analytics_workspace" "main" {
 }
 
 resource "azurerm_kubernetes_cluster" "main" {
-  name                        = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
-  location                    = var.common_config.az_resource_location
-  resource_group_name         = var.az_resource_group
-  dns_prefix                  = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
-  kubernetes_version          = var.kubernetes_version
-  automatic_channel_upgrade   = "patch"
-  sku_tier                    = "Free"
-  temporary_name_for_rotation = "temp"
+  name                      = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
+  location                  = var.common_config.az_resource_location
+  resource_group_name       = var.az_resource_group
+  dns_prefix                = "aks-${var.common_config.project_name}-${var.common_config.project_environment}"
+  kubernetes_version        = var.kubernetes_version
+  automatic_channel_upgrade = "patch"
+  sku_tier                  = "Free"
+  #temporary_name_for_rotation = "temp"
   default_node_pool {
     name = "system"
     #node_count          = var.system_node_count
