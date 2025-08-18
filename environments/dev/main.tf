@@ -2,16 +2,30 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>3.0"
+      version = "~> 3.80"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~>3.1"
+      version = "~> 3.1"
+    }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.0"
     }
   }
+  required_version = ">= 1.0"
 }
+
 provider "azurerm" {
-  features {}
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = true
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 #==============================================================================
@@ -22,6 +36,7 @@ module "dev_resourcegroup" {
   common_config = local.common_config
   rg_config     = var.rg_config
 }
+
 #==============================================================================
 #STORAGE-ACCOUNT
 #==============================================================================
@@ -32,6 +47,7 @@ module "dev_storageaccount" {
   az_resource_group = module.dev_resourcegroup.primary_resource_group_name
   depends_on        = [module.dev_resourcegroup]
 }
+
 #==============================================================================
 #AZURE-NETWORK
 #==============================================================================
@@ -43,6 +59,7 @@ module "dev_networking" {
   subnet_address_prefixes = var.subnet_address_prefixes
   depends_on              = [module.dev_resourcegroup]
 }
+
 #==============================================================================
 #AZURE-KUBERNETES-CLUSTER
 #==============================================================================
@@ -53,6 +70,7 @@ module "dev_aks" {
   subnet_id         = module.dev_networking.aks_subnet_id
   depends_on        = [module.dev_networking]
 }
+
 #==============================================================================
 #KEYVAULT
 #==============================================================================
@@ -65,7 +83,7 @@ module "dev_keyvault" {
 }
 
 #==============================================================================
-#KEYVAUAZURE-CONTAINER-REGISTRY
+#AZURE-CONTAINER-REGISTRY
 #==============================================================================
 module "dev_acr" {
   source = "../../modules/acr"
