@@ -32,7 +32,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     enable_auto_scaling = true
     min_count           = 2
     max_count           = 3 # Reduced to stay within quota
-    max_pods            = 50
+    max_pods            = 40
     vnet_subnet_id      = var.subnet_id
 
     upgrade_settings {
