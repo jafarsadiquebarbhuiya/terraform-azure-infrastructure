@@ -24,12 +24,12 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   default_node_pool {
     name                        = "system"
-    enable_auto_scaling         = true           # Current state
-    min_count                   = 1              # Current state  
-    max_count                   = 2              # Current state
-    vm_size                     = "Standard_B2s" # Current actual value
-    max_pods                    = 50             # INCREASED from 30 to 50
-    vnet_subnet_id              = var.subnet_id  # Current state
+    enable_auto_scaling         = true
+    min_count                   = 1
+    max_count                   = 2
+    vm_size                     = "Standard_B2s"
+    max_pods                    = 50 # INCREASED from 30 to 50
+    vnet_subnet_id              = var.subnet_id
     temporary_name_for_rotation = "sytemp001"
   }
   oidc_issuer_enabled       = true

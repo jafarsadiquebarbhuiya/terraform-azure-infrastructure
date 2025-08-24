@@ -88,19 +88,22 @@ module "dev_keyvault" {
 module "dev_acr" {
   source = "../../modules/acr"
 
-  # Common configuration
-  common_config     = local.common_config
-  az_resource_group = module.dev_resourcegroup.primary_resource_group_name
-
-  # Network integration
-  aks_subnet_id = module.dev_networking.aks_subnet_id
-
-  # AKS integration
+  common_config                           = local.common_config
+  az_resource_group                       = module.dev_resourcegroup.primary_resource_group_name
+  aks_subnet_id                           = module.dev_networking.aks_subnet_id
   aks_kubelet_identity_object_id          = module.dev_aks.kubelet_identity_object_id
   aks_user_assigned_identity_principal_id = module.dev_aks.cluster_identity_principal_id
+  key_vault_id                            = module.dev_keyvault.keyvault_id
+  depends_on                              = [module.dev_aks, module.dev_keyvault, module.dev_networking]
+}
 
-  # Key Vault integration
-  key_vault_id = module.dev_keyvault.keyvault_id
+#==============================================================================
+#KEYVAUL-IDENTITY
+#==============================================================================
+module "dev_keyvaultidentity" {
+  source = "../../modules/security/workloadidentity/keyvault"
 
-  depends_on = [module.dev_aks, module.dev_keyvault, module.dev_networking]
+  common_config     = local.common_config
+  az_resource_group = module.dev_resourcegroup.primary_resource_group_name
+  depends_on        = [module.dev_aks, module.dev_keyvault, module.dev_networking]
 }
