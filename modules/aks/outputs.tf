@@ -30,3 +30,12 @@ output "kube_config" {
   value     = azurerm_kubernetes_cluster.main.kube_config_raw
   sensitive = true
 }
+output "oidc_issuer_url" {
+  description = "The OIDC issuer URL that is associated with the cluster"
+  value       = azurerm_kubernetes_cluster.main.oidc_issuer_url
+}
+
+output "workload_identity_enabled" {
+  description = "Whether workload identity is enabled on the cluster"
+  value       = azurerm_kubernetes_cluster.main.workload_identity_enabled
+}

@@ -103,7 +103,14 @@ module "dev_acr" {
 module "dev_keyvaultidentity" {
   source = "../../modules/security/workloadidentity/keyvault"
 
-  common_config     = local.common_config
-  az_resource_group = module.dev_resourcegroup.primary_resource_group_name
-  depends_on        = [module.dev_aks, module.dev_keyvault, module.dev_networking]
+  common_config       = local.common_config
+  az_resource_group   = module.dev_resourcegroup.primary_resource_group_name
+  key_vault_id        = module.dev_keyvault.keyvault_id
+  aks_oidc_issuer_url = module.dev_aks.oidc_issuer_url
+
+  # Optional: customize these if needed
+  kubernetes_namespace       = "default"
+  kubernetes_service_account = "workload-identity-sa"
+
+  depends_on = [module.dev_aks, module.dev_keyvault]
 }
