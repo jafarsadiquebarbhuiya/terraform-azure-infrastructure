@@ -7,8 +7,8 @@ resource "azurerm_user_assigned_identity" "aks_identity" {
 
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "log-${var.common_config.project_name}-${var.common_config.project_environment}"
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
+  sku                 = "Free"
+  retention_in_days   = 7
   location            = var.common_config.az_resource_location
   resource_group_name = var.az_resource_group
   tags                = var.common_config.tags
@@ -41,9 +41,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   network_profile {
-    network_plugin = "azure"
-    service_cidr   = "10.2.0.0/24"
-    dns_service_ip = "10.2.0.10"
+    network_plugin    = "azure"
+    service_cidr      = "10.2.0.0/24"
+    dns_service_ip    = "10.2.0.10"
+    load_balancer_sku = "basic"
   }
   oms_agent {
     log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
