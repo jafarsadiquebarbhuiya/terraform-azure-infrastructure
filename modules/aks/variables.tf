@@ -1,22 +1,7 @@
-variable "cluster_name" {
-  description = "Name of the AKS cluster"
-  type        = string
-}
-
-variable "location" {
-  description = "Azure region"
-  type        = string
-}
-
-variable "resource_group_name" {
-  description = "Resource group name"
-  type        = string
-}
-
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.28.3"
+  default     = "1.30"
 }
 
 variable "system_node_count" {
@@ -48,7 +33,17 @@ variable "acr_id" {
   default     = null
 }
 
-variable "tags" {
-  description = "Tags to apply to resources"
-  type        = map(string)
+#=============================
+variable "common_config" {
+  description = "Common configuration shared across modules"
+  type = object({
+    project_name         = string
+    project_environment  = string
+    az_resource_location = string
+    tags                 = map(string)
+  })
+}
+variable "az_resource_group" {
+  description = "Resource group name where storage account will be created"
+  type        = string
 }
