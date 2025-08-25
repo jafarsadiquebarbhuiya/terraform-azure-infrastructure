@@ -1,57 +1,57 @@
-data "azurerm_client_config" "current" {}
+# data "azurerm_client_config" "current" {}
 
-# ADD THIS DATA SOURCE
-data "http" "current_ip" {
-  url = "https://ipv4.icanhazip.com"
-}
+# # ADD THIS DATA SOURCE
+# data "http" "current_ip" {
+#   url = "https://ipv4.icanhazip.com"
+# }
 
-# ADD THIS LOCALS BLOCK
-locals {
-  current_ip = chomp(data.http.current_ip.response_body)
-  static_ip_rules = [
-    "106.215.140.107/32",
-    "172.203.7.49/32",
-    "20.109.92.212/32"
-  ]
-  all_ip_rules = distinct(concat(local.static_ip_rules, ["${local.current_ip}/32"]))
-}
+# # ADD THIS LOCALS BLOCK
+# locals {
+#   current_ip = chomp(data.http.current_ip.response_body)
+#   static_ip_rules = [
+#     "106.215.140.107/32",
+#     "172.203.7.49/32",
+#     "20.109.92.212/32"
+#   ]
+#   all_ip_rules = distinct(concat(local.static_ip_rules, ["${local.current_ip}/32"]))
+# }
 
-resource "azurerm_key_vault" "keyvault" {
-  name                       = "kv-aks-${var.common_config.project_name}-${var.common_config.project_environment}-01"
-  location                   = var.common_config.az_resource_location
-  resource_group_name        = var.az_resource_group
-  tenant_id                  = data.azurerm_client_config.current.tenant_id
-  sku_name                   = "standard"
-  soft_delete_retention_days = 7
-  purge_protection_enabled   = false
+# resource "azurerm_key_vault" "keyvault" {
+#   name                       = "kv-aks-${var.common_config.project_name}-${var.common_config.project_environment}-01"
+#   location                   = var.common_config.az_resource_location
+#   resource_group_name        = var.az_resource_group
+#   tenant_id                  = data.azurerm_client_config.current.tenant_id
+#   sku_name                   = "standard"
+#   soft_delete_retention_days = 7
+#   purge_protection_enabled   = false
+#   enable_rbac_authorization  = true
+#   network_acls {
+#     default_action = "Allow"
+#     bypass         = "AzureServices"
 
-  network_acls {
-    default_action = "Allow"
-    bypass         = "AzureServices"
+#     #virtual_network_subnet_ids = [var.keyvault_subnet_id]
+#     #ip_rules                   = local.all_ip_rules # CHANGE THIS LINE ONLY
+#   }
 
-    #virtual_network_subnet_ids = [var.keyvault_subnet_id]
-    #ip_rules                   = local.all_ip_rules # CHANGE THIS LINE ONLY
-  }
+#   tags = var.common_config.tags
+# }
 
-  tags = var.common_config.tags
-}
+# # Grant access to current user (for initial setup)
+# resource "azurerm_key_vault_access_policy" "current_user" {
+#   key_vault_id = azurerm_key_vault.keyvault.id
+#   tenant_id    = data.azurerm_client_config.current.tenant_id
+#   object_id    = data.azurerm_client_config.current.object_id
 
-# Grant access to current user (for initial setup)
-resource "azurerm_key_vault_access_policy" "current_user" {
-  key_vault_id = azurerm_key_vault.keyvault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  secret_permissions = [
-    "Get",
-    "List",
-    "Set",
-    "Delete",
-    "Purge",
-    "Recover"
-  ]
-}
-
+#   secret_permissions = [
+#     "Get",
+#     "List",
+#     "Set",
+#     "Delete",
+#     "Purge",
+#     "Recover"
+#   ]
+# }
+########################################
 # Sample secrets for demonstration
 # resource "azurerm_key_vault_secret" "database_connection" {
 #   name         = "database-connection-string"
@@ -76,3 +76,54 @@ resource "azurerm_key_vault_access_policy" "current_user" {
 
 #   depends_on = [azurerm_key_vault_access_policy.current_user]
 # }
+data "azurerm_client_config" "current" {}
+
+data "http" "current_ip" {
+  url = "https://ipv4.icanhazip.com"
+}
+
+locals {
+  current_ip = chomp(data.http.current_ip.response_body)
+  static_ip_rules = [
+    "106.215.140.107/32",
+    "172.203.7.49/32",
+    "20.109.92.212/32"
+  ]
+  all_ip_rules = distinct(concat(local.static_ip_rules, ["${local.current_ip}/32"]))
+}
+
+resource "azurerm_key_vault" "keyvault" {
+  name                       = "kv-aks-${var.common_config.project_name}-${var.common_config.project_environment}-01"
+  location                   = var.common_config.az_resource_location
+  resource_group_name        = var.az_resource_group
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  soft_delete_retention_days = 7
+  purge_protection_enabled   = false
+
+  # Enable RBAC authorization instead of access policies
+  enable_rbac_authorization = true
+
+  network_acls {
+    default_action = "Allow"
+    bypass         = "AzureServices"
+    # virtual_network_subnet_ids = [var.keyvault_subnet_id]
+    # ip_rules                   = local.all_ip_rules
+  }
+
+  tags = var.common_config.tags
+}
+
+# Grant current user Key Vault Administrator role (for initial setup)
+resource "azurerm_role_assignment" "current_user_admin" {
+  scope                = azurerm_key_vault.keyvault.id
+  role_definition_name = "Key Vault Administrator"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+resource "azurerm_role_assignment" "aks_keyvault_secrets_user" {
+  scope                = azurerm_key_vault.keyvault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.aks_cluster_identity_principal_id
+  depends_on           = [azurerm_key_vault.keyvault]
+}
