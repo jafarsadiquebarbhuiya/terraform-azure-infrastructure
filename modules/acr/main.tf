@@ -1,6 +1,6 @@
 data "azurerm_client_config" "current" {}
 resource "azurerm_container_registry" "acr" {
-  name                = "acr${var.common_config.project_name}${var.common_config.project_environment}01"
+  name                = "acr${var.common_config.project_name}${var.common_config.project_environment}jsb01"
   resource_group_name = var.az_resource_group
   location            = var.common_config.az_resource_location
   sku                 = "Standard"
