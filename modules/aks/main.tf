@@ -39,7 +39,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.aks_identity.id]
   }
-
+  key_vault_secrets_provider {
+    secret_rotation_enabled  = true
+    secret_rotation_interval = "2m"
+  }
   network_profile {
     network_plugin    = "azure"
     service_cidr      = "10.2.0.0/24"

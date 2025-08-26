@@ -75,11 +75,12 @@ module "dev_aks" {
 #KEYVAULT
 #==============================================================================
 module "dev_keyvault" {
-  source             = "../../modules/keyvault"
-  common_config      = local.common_config
-  az_resource_group  = module.dev_resourcegroup.primary_resource_group_name
-  keyvault_subnet_id = module.dev_networking.keyvault_subnet_id
-  depends_on         = [module.dev_networking]
+  source                            = "../../modules/keyvault"
+  common_config                     = local.common_config
+  az_resource_group                 = module.dev_resourcegroup.primary_resource_group_name
+  keyvault_subnet_id                = module.dev_networking.keyvault_subnet_id
+  aks_cluster_identity_principal_id = module.dev_aks.cluster_identity_principal_id
+  depends_on                        = [module.dev_networking, module.dev_aks]
 }
 
 #==============================================================================

@@ -16,3 +16,7 @@ variable "az_resource_group" {
   description = "Resource group name where storage account will be created"
   type        = string
 }
+variable "aks_cluster_identity_principal_id" {
+  description = "AKS cluster identity principal ID"
+  type        = string
+}
