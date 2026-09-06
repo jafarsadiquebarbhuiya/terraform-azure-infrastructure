@@ -1,0 +1,163 @@
+# =============================================================================
+# Deploy — Release Branch (all envs including staging + prod)
+# Repo: terraform-azure-infrastructure
+#
+# Triggers:  workflow_dispatch (manual) from release/v* branches ONLY
+# Envs:      dev · int · staging · prod — all available
+# Pattern:   feature flag per env — enable only what you need
+# Approval:  staging and prod require GitHub Environment approval gate
+# =============================================================================
+
+name: Deploy — Release (all envs)
+
+on:
+    workflow_dispatch:
+        inputs:
+            deploy_dev:
+                description: "Deploy to DEV"
+                type: boolean
+                default: false
+            deploy_int:
+                description: "Deploy to INT"
+                type: boolean
+                default: false
+            deploy_staging:
+                description: "Deploy to STAGING"
+                type: boolean
+                default: false
+            deploy_prod:
+                description: "Deploy to PROD"
+                type: boolean
+                default: false
+            destroy:
+                description: "⚠️ Destroy mode — use with extreme caution"
+                type: boolean
+                default: false
+
+jobs:
+    # ── Safety guards ──────────────────────────────────────────────────────────
+    branch-guard:
+        name: Branch guard
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify release branch
+              shell: bash
+              run: |
+                  BRANCH="${{ github.ref_name }}"
+                  if [[ ! "$BRANCH" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "::error::deploy-release.yaml must run from a release/v* branch"
+                    echo "::error::Current branch: $BRANCH"
+                    echo "::error::Example valid branch: release/v1.0.0"
+                    exit 1
+                  fi
+                  echo "::notice::Branch check passed: $BRANCH"
+
+            - name: Block destroy on prod
+              if: inputs.destroy == true && inputs.deploy_prod == true
+              shell: bash
+              run: |
+                  echo "::error::DESTROY on prod is not allowed via this workflow"
+                  echo "::error::Use the dedicated destroy-prod.yaml with explicit confirmation"
+                  exit 1
+
+            - name: Warn on destroy
+              if: inputs.destroy == true
+              shell: bash
+              run: |
+                  echo "::warning::DESTROY mode is enabled — resources will be deleted"
+
+    # ── DEV ───────────────────────────────────────────────────────────────────
+    deploy-dev:
+        name: Deploy DEV
+        needs: branch-guard
+        if: inputs.deploy_dev == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: dev
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/dev
+            var-file: dev.tfvars
+            tf-version: latest
+            auto-apply: true
+            destroy: ${{ inputs.destroy }}
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-dev
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+
+    # ── INT ───────────────────────────────────────────────────────────────────
+    deploy-int:
+        name: Deploy INT
+        needs: branch-guard
+        if: inputs.deploy_int == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: int
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/int
+            var-file: int.tfvars
+            tf-version: latest
+            auto-apply: true
+            destroy: ${{ inputs.destroy }}
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-int
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_INT }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_INT }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_INT }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+
+    # ── STAGING ───────────────────────────────────────────────────────────────
+    deploy-staging:
+        name: Deploy STAGING
+        needs: branch-guard
+        if: inputs.deploy_staging == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: staging
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/staging
+            var-file: staging.tfvars
+            tf-version: latest
+            auto-apply: false # → GitHub Environment approval gate
+            destroy: ${{ inputs.destroy }}
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-staging
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_STAGING }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_STAGING }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_STAGING }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+
+    # ── PROD ──────────────────────────────────────────────────────────────────
+    deploy-prod:
+        name: Deploy PROD
+        needs: branch-guard
+        if: inputs.deploy_prod == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: prod
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/prod
+            var-file: prod.tfvars
+            tf-version: latest
+            auto-apply: false # → GitHub Environment approval gate + reviewers
+            destroy: false # explicitly hardcoded — never auto-destroy prod
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-prod
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_PROD }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}

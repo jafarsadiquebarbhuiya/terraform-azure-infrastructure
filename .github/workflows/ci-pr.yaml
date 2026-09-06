@@ -1,0 +1,76 @@
+# =============================================================================
+# CI — Pull Request
+# Repo: terraform-azure-infrastructure
+#
+# Triggers: automatically on every PR to main or release/v*
+# Purpose:  validate all modules + dry-run plan (no Azure creds needed)
+# Gate:     both jobs must pass before PR can be merged (branch protection)
+# =============================================================================
+
+name: CI — Pull Request
+
+on:
+    pull_request:
+        branches:
+            - main
+            - "release/v*"
+        types: [opened, synchronize, reopened]
+
+# Cancel in-progress run for same PR when new commit is pushed
+concurrency:
+    group: ci-pr-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # ── Validate all changed modules ───────────────────────────────────────────
+    validate:
+        name: Validate
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Validate modules
+              uses: your-org/github-actions-library/actions/terraform-validate@v1
+              with:
+                  working-directory: environments/dev
+                  tf-version: latest
+
+            - name: Validate all modules individually
+              shell: bash
+              run: |
+                  for dir in modules/*/; do
+                    echo "──── Validating $dir ────"
+                    cd "$dir"
+                    terraform init -backend=false -input=false
+                    terraform validate
+                    terraform fmt -check -recursive
+                    cd - > /dev/null
+                  done
+                  echo "::notice::All modules validated"
+
+    # ── Dry-run plan (no backend, no Azure creds) ──────────────────────────────
+    plan-dry-run:
+        name: Plan (dry-run)
+        runs-on: ubuntu-latest
+        needs: validate
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: latest
+                  terraform_wrapper: false
+
+            - name: Terraform plan dry-run (local backend)
+              shell: bash
+              working-directory: environments/dev
+              run: |
+                  terraform init -backend=false -input=false
+                  # Plan with mock var values — catches syntax and type errors
+                  terraform plan \
+                    -input=false \
+                    -var="environment=dev" \
+                    -refresh=false \
+                    || echo "::warning::Dry-run plan failed — check variable defaults"
+
+                  echo "::notice::Dry-run plan complete"

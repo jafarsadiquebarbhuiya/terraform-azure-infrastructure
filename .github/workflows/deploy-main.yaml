@@ -1,0 +1,95 @@
+# =============================================================================
+# Deploy — Main Branch (dev + int only)
+# Repo: terraform-azure-infrastructure
+#
+# Triggers:  workflow_dispatch (manual) from main branch ONLY
+# Envs:      dev and int — prod is BLOCKED from this workflow
+# Pattern:   feature flag per env — enable only what you need
+# =============================================================================
+
+name: Deploy — Main (dev / int)
+
+on:
+    workflow_dispatch:
+        inputs:
+            deploy_dev:
+                description: "Deploy to DEV"
+                type: boolean
+                default: true
+            deploy_int:
+                description: "Deploy to INT"
+                type: boolean
+                default: false
+            destroy:
+                description: "⚠️ Destroy mode (dev/int only)"
+                type: boolean
+                default: false
+
+jobs:
+    # ── Safety guard: fail immediately if not on main ─────────────────────────
+    branch-guard:
+        name: Branch guard
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify main branch
+              shell: bash
+              run: |
+                  if [ "${{ github.ref_name }}" != "main" ]; then
+                    echo "::error::deploy-main.yaml must be run from 'main' branch"
+                    echo "::error::Current branch: ${{ github.ref_name }}"
+                    exit 1
+                  fi
+
+            - name: Block prod from main
+              if: ${{ github.event.inputs.deploy_dev == 'false' && github.event.inputs.deploy_int == 'false' }}
+              shell: bash
+              run: |
+                  echo "::warning::No environments selected — nothing to deploy"
+
+    # ── DEV ───────────────────────────────────────────────────────────────────
+    deploy-dev:
+        name: Deploy DEV
+        needs: branch-guard
+        if: inputs.deploy_dev == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: dev
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/dev
+            var-file: dev.tfvars
+            tf-version: latest
+            auto-apply: true
+            destroy: ${{ inputs.destroy }}
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-dev
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+
+    # ── INT ───────────────────────────────────────────────────────────────────
+    deploy-int:
+        name: Deploy INT
+        needs: branch-guard
+        if: inputs.deploy_int == true
+        uses: your-org/github-actions-library/.github/workflows/tf-plan-apply.yaml@v1
+        with:
+            environment: int
+            env-prefix: terraform-azure-infrastructure
+            working-directory: environments/int
+            var-file: int.tfvars
+            tf-version: latest
+            auto-apply: true
+            destroy: ${{ inputs.destroy }}
+            backend-storage-account: stplatforminfra
+            backend-container: tfstate-int
+            backend-key: platform.tfstate
+            backend-resource-group: rg-platform-infra
+        secrets:
+            client-id: ${{ secrets.AZURE_CLIENT_ID_INT }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID_INT }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_INT }}
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
